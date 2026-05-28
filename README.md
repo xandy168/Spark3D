@@ -3,6 +3,8 @@ DGX SPARK 安裝Spark3D 2D自動產生3D 實際執行示意圖
 
 <img width="5712" height="4284" alt="IMG_7447" src="https://github.com/user-attachments/assets/70d42b54-e7b5-43cb-8398-2df2b574f7bf" />
 
+YOUTUBE DEMO VIDEO : https://youtu.be/ACMsii9DhY8
+
 📦 環境佈署 (Installation & Setup)
 1. 前置需求 (Prerequisites)
 NVIDIA DGX Spark 或具備相同架構之 NVIDIA GPU 伺服器

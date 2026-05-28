@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "profiles": {
+    "ollama:default": {
+      "type": "api_key",
+      "provider": "ollama",
+      "key": "ollama-local"
+    },
+    "anthropic:claude-cli": {
+      "type": "oauth",
+      "provider": "claude-cli",
+      "access": "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",
+      "refresh": "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",
+      "expires": 1779957344402
+    }
+  }
+}

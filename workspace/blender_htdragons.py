@@ -1,0 +1,149 @@
+import bpy, math
+from mathutils import Vector
+
+# --- clear scene ---
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.object.delete(use_global=False)
+for block in list(bpy.data.meshes) + list(bpy.data.materials):
+    try:
+        if block.users == 0:
+            (bpy.data.meshes if hasattr(block,'vertices') else bpy.data.materials).remove(block)
+    except Exception:
+        pass
+
+def mat(name, rgba, rough=0.5, metal=0.0):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    bsdf = m.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = rgba
+    bsdf.inputs["Roughness"].default_value = rough
+    bsdf.inputs["Metallic"].default_value = metal
+    return m
+
+# Materials based on analysis: man in suit, red lobster
+SKIN  = mat("skin",  (0.95, 0.85, 0.75, 1.0), 0.6)      # Light skin
+HAIR  = mat("hair",  (0.9, 0.8, 0.5, 1.0), 0.4)        # Light hair (for boy)
+SUIT  = mat("suit",  (0.1, 0.1, 0.2, 1.0), 0.3)        # Dark suit
+SHIRT = mat("shirt", (0.8, 0.8, 0.9, 1.0), 0.2)        # Light shirt
+DRAGON = mat("dragon", (0.9, 0.1, 0.1, 1.0), 0.2, 0.1) # Glossy red
+EYES   = mat("eyes", (0.05, 0.05, 0.05, 1.0), 0.4)
+MOUTH  = mat("mouth", (0.8, 0.2, 0.2, 1.0), 0.6)
+
+def add(prim, name, loc, scale=(1,1,1), rot=(0,0,0), material=None, **kw):
+    if prim == 'sphere':
+        bpy.ops.mesh.primitive_uv_sphere_add(location=loc, **kw)
+    elif prim == 'cube':
+        bpy.ops.mesh.primitive_cube_add(location=loc, **kw)
+    elif prim == 'cyl':
+        bpy.ops.mesh.primitive_cylinder_add(location=loc, **kw)
+    elif prim == 'cone':
+        bpy.ops.mesh.primitive_cone_add(location=loc, **kw)
+    elif prim == 'torus':
+        bpy.ops.mesh.primitive_torus_add(location=loc, **kw)
+    o = bpy.context.active_object
+    o.name = name
+    o.scale = scale
+    o.rotation_euler = rot
+    if material:
+        o.data.materials.append(material)
+    bpy.ops.object.shade_smooth()
+    return o
+
+# ========== BOY (small/child) ==========
+# Based on HTTD description: baby/small boy
+# Torso (smaller proportions)
+torso = add('cube', 'boy_torso', (0, 0, 0.2), scale=(0.25, 0.2, 0.15), material=SHIRT)
+# Neck
+neck = add('cyl', 'boy_neck', (0, 0.2, 0.2), scale=(0.06, 0.06, 0.06), material=SKIN)
+# Head (proportionally larger for child)
+head = add('sphere', 'boy_head', (0, 0.3, 0.25), scale=(0.22, 0.22, 0.22), material=SKIN)
+# Hair (simple blob)
+hair = add('sphere', 'boy_hair', (0, 0.35, 0.35), scale=(0.24, 0.24, 0.12), material=HAIR)
+# Eyes
+eye_l = add('sphere', 'boy_eye_l', (-0.05, 0.32, 0.28), scale=(0.03, 0.02, 0.03), material=EYES)
+eye_r = add('sphere', 'boy_eye_r', ( 0.05, 0.32, 0.28), scale=(0.03, 0.02, 0.03), material=EYES)
+# Mouth (smile)
+mouth = add('sphere', 'boy_mouth', (0, 0.28, 0.22), scale=(0.06, 0.02, 0.02), material=MOUTH)
+
+# Arms (small, positioned to side)
+upper_arm_l = add('cyl', 'boy_uarm_l', (-0.15, 0.1, 0.15), scale=(0.04, 0.04, 0.18), rot=(0,0,m.radians(15)), material=SHIRT)
+lower_arm_l = add('cyl', 'boy_larm_l', (-0.2, -0.1, 0.1), scale=(0.035, 0.035, 0.15), rot=(0,0,m.radians(30)), material=SHIRT)
+hand_l = add('sphere', 'boy_hand_l', (-0.22, -0.25, 0.08), scale=(0.06,0.06,0.06), material=SKIN)
+upper_arm_r = add('cyl', 'boy_uarm_r', (0.15, 0.1, 0.15), scale=(0.04, 0.04, 0.18), rot=(0,0,m.radians(-15)), material=SHIRT)
+lower_arm_r = add('cyl', 'boy_larm_r', (0.2, -0.1, 0.1), scale=(0.035, 0.035, 0.15), rot=(0,0,m.radians(-30)), material=SHIRT)
+hand_r = add('sphere', 'boy_hand_r', (0.22, -0.25, 0.08), scale=(0.06,0.06,0.06), material=SKIN)
+
+# Legs (short)
+leg_l = add('cyl', 'boy_leg_l', (-0.08, -0.2, -0.1), scale=(0.05,0.05,0.2), material=SHIRT)
+leg_r = add('cyl', 'boy_leg_r', ( 0.08, -0.2, -0.1), scale=(0.05,0.05,0.2), material=SHIRT)
+# Feet
+foot_l = add('cube', 'boy_foot_l', (-0.08, -0.2, -0.25), scale=(0.08,0.05,0.04), material=SHIRT)
+foot_r = add('cube', 'boy_foot_r', ( 0.08, -0.2, -0.25), scale=(0.08,0.05,0.04), material=SHIRT)
+
+# ========== RED DRAGON (small) ==========
+# Based on HTTD: small red dragon
+# Body (small, oval)
+body = add('sphere', 'dragon_body', (-0.3, 0.1, 0.4), scale=(0.12, 0.1, 0.15), material=DRAGON)
+# Head
+head_d = add('sphere', 'dragon_head', (-0.4, 0.15, 0.5), scale=(0.1, 0.1, 0.1), material=DRAGON)
+# Horns (simple cones)
+horn_l = add('cone', 'dragon_horn_l', (-0.45, 0.2, 0.55), scale=(0.02,0.02,0.04), rot=(0,0,m.radians(30)), material=DRAGON)
+horn_r = add('cone', 'dragon_horn_r', (-0.35, 0.2, 0.55), scale=(0.02,0.02,0.04), rot=(0,0,m.radians(-30)), material=DRAGON)
+# Eyes
+eye_dl = add('sphere', 'dragon_eye_l', (-0.42, 0.18, 0.52), scale=(0.02,0.02,0.02), material=EYES)
+eye_dr = add('sphere', 'dragon_eye_r', (-0.38, 0.18, 0.52), scale=(0.02,0.02,0.02), material=EYES)
+# Mouth (small)
+mouth_d = add('sphere', 'dragon_mouth', (-0.4, 0.12, 0.48), scale=(0.04,0.01,0.01), material=MOUTH)
+# Wings (simple planes)
+wing_l = add('cube', 'dragon_wing_l', (-0.5, 0.0, 0.45), scale=(0.15,0.02,0.08), material=DRAGON)
+wing_r = add('cube', 'dragon_wing_r', (-0.1, 0.0, 0.45), scale=(0.15,0.02,0.08), material=DRAGON)
+# Legs (short, stubby)
+leg_dl = add('cyl', 'dragon_leg_l', (-0.35, 0.0, 0.3), scale=(0.015,0.015,0.06), material=DRAGON)
+leg_dr = add('cyl', 'dragon_leg_r', (-0.25, 0.0, 0.3), scale=(0.015,0.015,0.06), material=DRAGON
+leg_dl2 = add('cyl', 'dragon_leg_l2', (-0.35, -0.1, 0.2), scale=(0.015,0.015,0.06), material=DRAGON)
+leg_dr2 = add('cyl', 'dragon_leg_r2', (-0.25, -0.1, 0.2), scale=(0.015,0.015,0.06), material=DRAGON
+# Tail
+tail_d = add('sphere', 'dragon_tail', (-0.5, 0.05, 0.35), scale=(0.08,0.06,0.04), material=DRAGON)
+
+# ========== Base/Background (for keychain/magnet) ==========
+# Horizontal base as described
+base = add('cube', 'base', (0, 0, -0.05), scale=(0.8, 0.3, 0.1), material=mat("base", (0.9,0.9,0.9,1.0), 0.8, 0.2))
+
+# ========== Lighting and Camera ==========
+# Camera: slightly angled to see both figures
+bpy.ops.object.camera_add(location=(0, -1.5, 0.8), rotation=(m.radians(60), 0, 0))
+cam = bpy.context.active_object
+cam.data.lens = 35
+bpy.context.scene.camera = cam
+
+# Lights: soft, even lighting
+bpy.ops.object.light_add(type='AREA', location=(0, -1, 1.5))
+light = bpy.context.active_object
+light.data.energy = 300
+light.data.size = 1.5
+
+# World (white background)
+world = bpy.context.scene.world
+world.use_nodes = True
+bg = world.node_tree.nodes.get("Background")
+bg.inputs[0].default_value = (1.0, 1.0, 1.0, 1.0)  # White background
+bg.inputs[1].default_value = 1.0
+
+# Render settings
+scene = bpy.context.scene
+scene.render.engine = 'BLENDER_EEVEE'
+scene.render.resolution_x = 900
+scene.render.resolution_y = 600  # Wider for horizontal composition
+
+print("BUILD_OK: HTTD-inspired boy and dragon modeled.")
+
+# ========== Export ==========
+# Select all mesh objects
+bpy.ops.object.select_all(action='DESELECT')
+for obj in bpy.data.objects:
+    if obj.type == 'MESH':
+        obj.select_set(True)
+# Export STL
+stl_path = "/home/tpk/.openclaw/workspace/htdragons_boy_dragon.stl"
+bpy.ops.export_mesh.stl(filepath=stl_path, use_selection=True)
+print(f"EXPORTED: {stl_path}")

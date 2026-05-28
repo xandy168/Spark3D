@@ -1,0 +1,146 @@
+import bpy, math
+from mathutils import Vector
+
+# --- clear scene ---
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.object.delete(use_global=False)
+for block in list(bpy.data.meshes) + list(bpy.data.materials):
+    try:
+        if block.users == 0:
+            (bpy.data.meshes if hasattr(block,'vertices') else bpy.data.materials).remove(block)
+    except Exception:
+        pass
+
+def mat(name, rgba, rough=0.5, metal=0.0):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    bsdf = m.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = rgba
+    bsdf.inputs["Roughness"].default_value = rough
+    bsdf.inputs["Metallic"].default_value = metal
+    return m
+
+# Materials
+SKIN  = mat("skin",  (0.95, 0.85, 0.75, 1.0), 0.6)      # Light skin
+HAIR  = mat("hair",  (0.9, 0.8, 0.5, 1.0), 0.4)        # Blonde
+SHIRT = mat("shirt", (0.2, 0.4, 0.8, 1.0), 0.5)        # Blue shirt
+SHORTS= mat("shorts",(0.1, 0.1, 0.2, 1.0), 0.5)        # Dark shorts
+CREATURE = mat("creature", (0.9, 0.1, 0.1, 1.0), 0.2, 0.1) # Glossy red
+EYES   = mat("eyes", (0.05, 0.05, 0.05, 1.0), 0.4)
+MOUTH  = mat("mouth", (0.8, 0.2, 0.2, 1.0), 0.6)
+
+def add(prim, name, loc, scale=(1,1,1), rot=(0,0,0), material=None, **kw):
+    if prim == 'sphere':
+        bpy.ops.mesh.primitive_uv_sphere_add(location=loc, **kw)
+    elif prim == 'cube':
+        bpy.ops.mesh.primitive_cube_add(location=loc, **kw)
+    elif prim == 'cyl':
+        bpy.ops.mesh.primitive_cylinder_add(location=loc, **kw)
+    elif prim == 'cone':
+        bpy.ops.mesh.primitive_cone_add(location=loc, **kw)
+    elif prim == 'torus':
+        bpy.ops.mesh.primitive_torus_add(location=loc, **kw)
+    o = bpy.context.active_object
+    o.name = name
+    o.scale = scale
+    o.rotation_euler = rot
+    if material:
+        o.data.materials.append(material)
+    bpy.ops.object.shade_smooth()
+    return o
+
+# ========== BOY (lying down) ==========
+# Torso (lying on back, so along X-axis? We'll have the boy lie along the Y-axis for simplicity)
+# Let's define: boy lies along the Y-axis, head towards +Y, feet towards -Y, looking up (towards +Z)
+torso = add('cube', 'boy_torso', (0, 0, 0.2), scale=(0.4, 0.2, 0.15), material=SHIRT)  # thin torso
+# Neck
+neck = add('cyl', 'boy_neck', (0, 0.25, 0.2), scale=(0.08, 0.08, 0.08), material=SKIN)
+# Head
+head = add('sphere', 'boy_head', (0, 0.4, 0.25), scale=(0.2, 0.2, 0.2), material=SKIN)
+# Hair (blob on top)
+hair = add('sphere', 'boy_hair', (0, 0.45, 0.35), scale=(0.22, 0.22, 0.12), material=HAIR)
+# Eyes (simple)
+eye_l = add('sphere', 'boy_eye_l', (-0.06, 0.42, 0.28), scale=(0.03, 0.02, 0.03), material=EYES)
+eye_r = add('sphere', 'boy_eye_r', ( 0.06, 0.42, 0.28), scale=(0.03, 0.02, 0.03), material=EYES)
+# Mouth (smile)
+mouth = add('sphere', 'boy_mouth', (0, 0.38, 0.22), scale=(0.07, 0.02, 0.02), material=MOUTH)
+
+# Arms (lying at sides, slightly bent to hold creature on chest)
+# Left arm
+upper_arm_l = add('cyl', 'boy_uarm_l', (-0.25, 0.1, 0.15), scale=(0.06, 0.06, 0.25), rot=(0,0,m.radians(20)), material=SHIRT)
+lower_arm_l = add('cyl', 'boy_larm_l', (-0.35, -0.1, 0.1), scale=(0.05, 0.05, 0.2), rot=(0,0,m.radians(40)), material=SHIRT)
+hand_l = add('sphere', 'boy_hand_l', (-0.4, -0.3, 0.08), scale=(0.08,0.08,0.08), material=SKIN)
+# Right arm (mirrored, but holding creature)
+upper_arm_r = add('cyl', 'boy_uarm_r', (0.25, 0.1, 0.15), scale=(0.06, 0.06, 0.25), rot=(0,0,m.radians(-20)), material=SHIRT)
+lower_arm_r = add('cyl', 'boy_larm_r', (0.35, -0.1, 0.1), scale=(0.05, 0.05, 0.2), rot=(0,0,m.radians(-40)), material=SHIRT)
+hand_r = add('sphere', 'boy_hand_r', (0.4, -0.3, 0.08), scale=(0.08,0.08,0.08), material=SKIN)
+
+# Legs (straight)
+leg_l = add('cyl', 'boy_leg_l', (-0.12, -0.3, -0.1), scale=(0.08,0.08,0.3), material=SHORTS)
+leg_r = add('cyl', 'boy_leg_r', ( 0.12, -0.3, -0.1), scale=(0.08,0.08,0.3), material=SHORTS)
+# Feet
+foot_l = add('cube', 'boy_foot_l', (-0.12, -0.3, -0.35), scale=(0.12,0.08,0.05), material=SHORTS)
+foot_r = add('cube', 'boy_foot_r', ( 0.12, -0.3, -0.35), scale=(0.12,0.08,0.05), material=SHORTS)
+
+# ========== CREATURE (Stitch-like, nestled on chest) ==========
+# Body (oval, lying on its side? We'll have it lie along the X-axis on the boy's chest)
+body = add('sphere', 'creature_body', (0, 0.05, 0.4), scale=(0.18, 0.12, 0.15), material=CREATURE)
+# Head (larger sphere)
+head_c = add('sphere', 'creature_head', (-0.1, 0.18, 0.5), scale=(0.16, 0.16, 0.16), material=CREATURE)
+# Ears (pointy)
+ear_l = add('cone', 'creature_ear_l', (-0.2, 0.25, 0.55), scale=(0.04,0.04,0.08), rot=(0, m.radians(30), m.radians(-20)), material=CREATURE)
+ear_r = add('cone', 'creature_ear_r', ( 0.0, 0.25, 0.55), scale=(0.04,0.04,0.08), rot=(0, m.radians(-30), m.radians(20)), material=CREATURE)
+# Eyes (large, black)
+eye_cl = add('sphere', 'creature_eye_l', (-0.05, 0.22, 0.58), scale=(0.04,0.04,0.04), material=EYES)
+eye_cr = add('sphere', 'creature_eye_r', ( 0.05, 0.22, 0.58), scale=(0.04,0.04,0.04), material=EYES)
+# Mouth (grin)
+mouth_c = add('sphere', 'creature_mouth', (0, 0.15, 0.48), scale=(0.08,0.02,0.02), material=MOUTH)
+# Arms (short, stubby)
+arm_l = add('cyl', 'creature_arm_l', (-0.2, 0.0, 0.35), scale=(0.025,0.025,0.12), rot=(0, m.radians(20),0), material=CREATURE)
+arm_r = add('cyl', 'creature_arm_r', ( 0.2, 0.0, 0.35), scale=(0.025,0.025,0.12), rot=(0, m.radians(-20),0), material=CREATURE)
+# Legs (short)
+leg_cl = add('cyl', 'creature_leg_l', (-0.1, -0.05, 0.2), scale=(0.02,0.02,0.08), material=CREATURE)
+leg_cr = add('cyl', 'creature_leg_r', ( 0.1, -0.05, 0.2), scale=(0.02,0.02,0.08), material=CREATURE
+
+# ========== Base (optional, for pin/magnet shape) ==========
+# We'll create a simple oval base under the figures
+base = add('cube', 'base', (0, -0.2, -0.05), scale=(0.6, 0.4, 0.1), material=mat("base", (0.9,0.9,0.9,1.0), 0.8, 0.1))
+
+# ========== Lighting and Camera ==========
+# Camera: top-down to see the lying figures
+bpy.ops.object.camera_add(location=(0, -2, 1.5), rotation=(m.radians(70), 0, 0))
+cam = bpy.context.active_object
+cam.data.lens = 35
+bpy.context.scene.camera = cam
+
+# Lights: soft overhead
+bpy.ops.object.light_add(type='AREA', location=(0, -1, 2.5))
+light = bpy.context.active_object
+light.data.energy = 500
+light.data.size = 2.0
+
+# World
+world = bpy.context.scene.world
+world.use_nodes = True
+bg = world.node_tree.nodes.get("Background")
+bg.inputs[0].default_value = (1.0, 1.0, 1.0, 1.0)  # White background
+bg.inputs[1].default_value = 1.0
+
+# Render settings (for preview)
+scene = bpy.context.scene
+scene.render.engine = 'BLENDER_EEVEE'
+scene.render.resolution_x = 900
+scene.render.resolution_y = 900
+
+print("BUILD_OK: Boy and Stitch-like creature modeled.")
+
+# ========== Export ==========
+# Select all mesh objects
+bpy.ops.object.select_all(action='DESELECT')
+for obj in bpy.data.objects:
+    if obj.type == 'MESH':
+        obj.select_set(True)
+# Export STL
+stl_path = "/home/tpk/.openclaw/workspace/boy_creature_pin.stl"
+bpy.ops.export_mesh.stl(filepath=stl_path, use_selection=True)
+print(f"EXPORTED: {stl_path}")

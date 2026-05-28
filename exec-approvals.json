@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "socket": {
+    "path": "/home/tpk/.openclaw/exec-approvals.sock",
+    "token": "lxyq4_CurqfonLskU4KQ4TAUMXJJbQZ7"
+  },
+  "defaults": {},
+  "agents": {}
+}

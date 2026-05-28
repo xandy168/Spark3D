@@ -1,0 +1,1 @@
+3D model created: optical system with housing, lens, VCSEL sensor, and light rays (16 objects, 13 materials) per hand-drawn sketch.

@@ -1,0 +1,10 @@
+{
+  "name": "blender-mcp",
+  "version": "1.0.0",
+  "description": "A minimal package.json for blender-mcp",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {}
+}

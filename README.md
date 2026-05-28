@@ -1,3 +1,8 @@
+
+DGX SPARK 安裝Spark3D 2D自動產生3D 實際執行示意圖
+
+<img width="5712" height="4284" alt="IMG_7447" src="https://github.com/user-attachments/assets/70d42b54-e7b5-43cb-8398-2df2b574f7bf" />
+
 📦 環境佈署 (Installation & Setup)
 1. 前置需求 (Prerequisites)
 NVIDIA DGX Spark 或具備相同架構之 NVIDIA GPU 伺服器
@@ -30,7 +35,9 @@ llm:
 whatsapp:
   verify_token: "YOUR_VERIFY_TOKEN"
   access_token: "YOUR_ACCESS_TOKEN"
+  
 💡 使用範例 (Usage Showcase)
+
 文字輸入： 在 WhatsApp 輸入 建立一個直徑 5 單位、帶有 8 個散熱孔的科技感圓柱底座。
 
 多模態輸入： 拍攝一張筆記本上的機械外殼手繪草圖，上傳至 WhatsApp 並附帶文字 轉換為 3D 概念模型。
